@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>马克思主义原理刷题</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <aside class="sidebar" aria-label="题库与章节">
+      <section class="brand">
+        <h1>马克思刷题</h1>
+        <p id="bankMeta">导入 JSON 或 TXT 开始刷题</p>
+      </section>
+
+      <section class="panel">
+        <label class="fileButton" for="fileInput">导入题库</label>
+        <input id="fileInput" type="file" accept=".json,.txt,text/plain,application/json">
+        <button id="loadSampleBtn" type="button">载入内置样例</button>
+      </section>
+
+      <section class="panel">
+        <h2>章节</h2>
+        <div id="chapterList" class="chapterList"></div>
+      </section>
+
+      <section class="panel">
+        <h2>练习范围</h2>
+        <div class="segmented" role="group" aria-label="练习范围">
+          <button class="active" data-mode="all" type="button">全部</button>
+          <button data-mode="single" type="button">单选</button>
+          <button data-mode="multiple" type="button">多选</button>
+          <button data-mode="wrong" type="button">错题</button>
+        </div>
+      </section>
+
+      <section class="panel stats">
+        <h2>进度</h2>
+        <p><span id="statPosition">0/0</span><span id="statAccuracy">正确率 0%</span></p>
+        <p><span id="statCorrect">答对 0</span><span id="statWrong">错题 0</span></p>
+      </section>
+    </aside>
+
+    <section class="quiz">
+      <header class="toolbar">
+        <button id="prevBtn" type="button" aria-label="上一题">上一题</button>
+        <button id="nextBtn" type="button" aria-label="下一题">下一题</button>
+        <button id="shuffleBtn" type="button">打乱</button>
+        <button id="resetBtn" type="button">重置进度</button>
+      </header>
+
+      <article class="questionPanel">
+        <div class="questionMeta">
+          <span id="questionChapter">未分章</span>
+          <span id="questionType">单选</span>
+        </div>
+        <h2 id="questionText">请先导入题库</h2>
+        <div id="options" class="options"></div>
+        <div class="answerBar">
+          <button id="submitBtn" type="button">提交答案</button>
+          <button id="showAnswerBtn" type="button">看答案</button>
+          <p id="feedback" aria-live="polite"></p>
+        </div>
+      </article>
+
+      <section class="wrongPanel">
+        <div class="sectionHeader">
+          <h2>错题本</h2>
+          <button id="clearWrongBtn" type="button">清空当前章节</button>
+        </div>
+        <div id="wrongList" class="wrongList"></div>
+      </section>
+    </section>
+  </main>
+
+  <script src="questions.sample.js"></script>
+  <script src="core.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
