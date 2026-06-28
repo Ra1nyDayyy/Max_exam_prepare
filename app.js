@@ -28,6 +28,7 @@
     showAnswerBtn: document.getElementById("showAnswerBtn"),
     feedback: document.getElementById("feedback"),
     wrongList: document.getElementById("wrongList"),
+    previewWrongAnswersBtn: document.getElementById("previewWrongAnswersBtn"),
     exportWrongJsonBtn: document.getElementById("exportWrongJsonBtn"),
     exportWrongTxtBtn: document.getElementById("exportWrongTxtBtn"),
     clearWrongBtn: document.getElementById("clearWrongBtn"),
@@ -46,6 +47,7 @@
     totalAnswered: 0,
     wrongNotebook: readJson(WRONG_KEY, {}),
     reveal: false,
+    autoRevealWrong: false,
     lastFeedback: null,
   };
 
@@ -68,6 +70,7 @@
         state.position = 0;
         state.selected = [];
         state.reveal = false;
+        state.autoRevealWrong = false;
         state.lastFeedback = null;
         rebuildOrder();
         render();
@@ -79,6 +82,7 @@
     els.resetBtn.addEventListener("click", resetProgress);
     els.submitBtn.addEventListener("click", submitAnswer);
     els.showAnswerBtn.addEventListener("click", revealAnswer);
+    els.previewWrongAnswersBtn.addEventListener("click", enterWrongAnswerPreview);
     els.exportWrongJsonBtn.addEventListener("click", () => exportWrongNotebook("json"));
     els.exportWrongTxtBtn.addEventListener("click", () => exportWrongNotebook("txt"));
     els.clearWrongBtn.addEventListener("click", clearCurrentWrongChapter);
@@ -111,6 +115,7 @@
     state.correct = 0;
     state.totalAnswered = 0;
     state.reveal = false;
+    state.autoRevealWrong = false;
     state.lastFeedback = null;
     rebuildOrder();
     saveState();
@@ -148,6 +153,7 @@
       state.position = 0;
       state.selected = [];
       state.reveal = false;
+      state.autoRevealWrong = false;
       state.lastFeedback = null;
       rebuildOrder();
     }
@@ -192,7 +198,7 @@
         state.activeChapter = chapter;
         state.position = 0;
         state.selected = [];
-        state.reveal = false;
+        state.reveal = state.autoRevealWrong && state.mode === "wrong";
         state.lastFeedback = null;
         rebuildOrder();
         render();
@@ -236,8 +242,10 @@
     els.questionChapter.textContent = question.chapter;
     els.questionType.textContent = question.type === "multiple" ? "多选" : "单选";
     els.questionText.textContent = `${question.number ? question.number + ". " : ""}${question.question}`;
-    els.submitBtn.disabled = false;
-    els.showAnswerBtn.disabled = false;
+    if (state.mode === "wrong" && state.autoRevealWrong) state.reveal = true;
+    const answerPreview = state.mode === "wrong" && state.autoRevealWrong;
+    els.submitBtn.disabled = answerPreview;
+    els.showAnswerBtn.disabled = answerPreview;
 
     Object.entries(question.options).forEach(([letter, text]) => {
       const button = document.createElement("button");
@@ -312,7 +320,9 @@
   function toggleOption(letter) {
     const question = getCurrentQuestion();
     if (!question) return;
+    if (state.mode === "wrong" && state.autoRevealWrong) return;
     state.reveal = false;
+    state.autoRevealWrong = false;
     if (question.type === "single") {
       state.selected = [letter];
       submitAnswer();
@@ -371,7 +381,7 @@
     if (!state.order.length) return;
     state.position = (state.position + step + state.order.length) % state.order.length;
     state.selected = [];
-    state.reveal = false;
+    state.reveal = state.autoRevealWrong && state.mode === "wrong";
     state.lastFeedback = null;
     render();
   }
@@ -383,7 +393,7 @@
     }
     state.position = 0;
     state.selected = [];
-    state.reveal = false;
+    state.reveal = state.autoRevealWrong && state.mode === "wrong";
     state.lastFeedback = null;
     render();
   }
@@ -394,6 +404,7 @@
     state.correct = 0;
     state.totalAnswered = 0;
     state.reveal = false;
+    state.autoRevealWrong = false;
     state.lastFeedback = null;
     saveState();
     render();
@@ -402,12 +413,33 @@
   function jumpToWrong(id) {
     state.view = "practice";
     state.mode = "wrong";
+    state.autoRevealWrong = false;
     rebuildOrder();
     const index = state.order.indexOf(id);
     state.position = Math.max(0, index);
     state.selected = [];
     state.reveal = false;
     state.lastFeedback = null;
+    render();
+  }
+
+  function enterWrongAnswerPreview() {
+    const count = state.activeChapter === "全部"
+      ? Object.values(state.wrongNotebook).reduce((sum, list) => sum + list.length, 0)
+      : (state.wrongNotebook[state.activeChapter] || []).length;
+    if (!count) {
+      alert("当前章节没有错题可速览。");
+      return;
+    }
+
+    state.view = "practice";
+    state.mode = "wrong";
+    state.autoRevealWrong = true;
+    state.position = 0;
+    state.selected = [];
+    state.reveal = true;
+    state.lastFeedback = null;
+    rebuildOrder();
     render();
   }
 
