@@ -104,19 +104,27 @@ button:hover,
 }
 
 .chapterList button,
-.segmented button {
+.segmented button,
+.viewSwitch button {
   width: 100%;
   text-align: left;
 }
 
 .chapterList button.active,
-.segmented button.active {
+.segmented button.active,
+.viewSwitch button.active {
   background: var(--accent);
   border-color: var(--accent);
   color: #fff;
 }
 
 .segmented {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.viewSwitch {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -130,9 +138,7 @@ button:hover,
 }
 
 .quiz {
-  display: grid;
-  grid-template-rows: auto minmax(360px, auto) 1fr;
-  gap: 18px;
+  display: block;
   padding: 24px;
 }
 
@@ -140,6 +146,11 @@ button:hover,
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.appView.hidden {
+  display: none;
 }
 
 .questionPanel,
@@ -250,6 +261,13 @@ button:hover,
   margin-bottom: 12px;
 }
 
+.headerActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .wrongList {
   display: grid;
   gap: 10px;
@@ -285,5 +303,14 @@ button:hover,
 
   .quiz {
     padding: 16px;
+  }
+
+  .sectionHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .headerActions {
+    justify-content: flex-start;
   }
 }

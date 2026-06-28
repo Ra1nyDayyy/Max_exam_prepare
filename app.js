@@ -5,6 +5,10 @@
   const els = {
     fileInput: document.getElementById("fileInput"),
     loadSampleBtn: document.getElementById("loadSampleBtn"),
+    practiceViewBtn: document.getElementById("practiceViewBtn"),
+    wrongbookViewBtn: document.getElementById("wrongbookViewBtn"),
+    practiceView: document.getElementById("practiceView"),
+    wrongbookView: document.getElementById("wrongbookView"),
     bankMeta: document.getElementById("bankMeta"),
     chapterList: document.getElementById("chapterList"),
     modeButtons: Array.from(document.querySelectorAll("[data-mode]")),
@@ -24,12 +28,15 @@
     showAnswerBtn: document.getElementById("showAnswerBtn"),
     feedback: document.getElementById("feedback"),
     wrongList: document.getElementById("wrongList"),
+    exportWrongJsonBtn: document.getElementById("exportWrongJsonBtn"),
+    exportWrongTxtBtn: document.getElementById("exportWrongTxtBtn"),
     clearWrongBtn: document.getElementById("clearWrongBtn"),
   };
 
   const state = {
     bank: null,
     activeChapter: "全部",
+    view: "practice",
     mode: "all",
     order: [],
     position: 0,
@@ -52,9 +59,12 @@
   function bindEvents() {
     els.fileInput.addEventListener("change", handleFileImport);
     els.loadSampleBtn.addEventListener("click", () => loadBank(JSON.stringify(window.SAMPLE_QUESTION_BANK || {}), "内置样例.json"));
+    els.practiceViewBtn.addEventListener("click", () => switchView("practice"));
+    els.wrongbookViewBtn.addEventListener("click", () => switchView("wrongbook"));
     els.modeButtons.forEach((button) => {
       button.addEventListener("click", () => {
         state.mode = button.dataset.mode;
+        state.view = "practice";
         state.position = 0;
         state.selected = [];
         state.reveal = false;
@@ -69,6 +79,8 @@
     els.resetBtn.addEventListener("click", resetProgress);
     els.submitBtn.addEventListener("click", submitAnswer);
     els.showAnswerBtn.addEventListener("click", revealAnswer);
+    els.exportWrongJsonBtn.addEventListener("click", () => exportWrongNotebook("json"));
+    els.exportWrongTxtBtn.addEventListener("click", () => exportWrongNotebook("txt"));
     els.clearWrongBtn.addEventListener("click", clearCurrentWrongChapter);
     document.addEventListener("keydown", handleKeyboard);
   }
@@ -91,6 +103,7 @@
   function loadBank(raw, fileName) {
     state.bank = QuizCore.parseQuestionBank(raw, fileName);
     state.activeChapter = "全部";
+    state.view = "practice";
     state.mode = "all";
     state.position = 0;
     state.selected = [];
@@ -128,6 +141,19 @@
     if (state.position >= state.order.length) state.position = Math.max(0, state.order.length - 1);
   }
 
+  function switchView(view) {
+    state.view = view;
+    if (view === "practice" && state.mode === "wrong") {
+      state.mode = "all";
+      state.position = 0;
+      state.selected = [];
+      state.reveal = false;
+      state.lastFeedback = null;
+      rebuildOrder();
+    }
+    render();
+  }
+
   function getCurrentQuestion() {
     if (!state.bank || !state.order.length) return null;
     const id = state.order[state.position];
@@ -139,10 +165,18 @@
 
   function render() {
     renderChapters();
+    renderView();
     renderModeButtons();
     renderQuestion();
     renderStats();
     renderWrongList();
+  }
+
+  function renderView() {
+    els.practiceView.classList.toggle("hidden", state.view !== "practice");
+    els.wrongbookView.classList.toggle("hidden", state.view !== "wrongbook");
+    els.practiceViewBtn.classList.toggle("active", state.view === "practice");
+    els.wrongbookViewBtn.classList.toggle("active", state.view === "wrongbook");
   }
 
   function renderChapters() {
@@ -169,7 +203,7 @@
 
   function countChapterQuestions(chapter) {
     if (!state.bank) return 0;
-    if (state.mode === "wrong") {
+    if (state.mode === "wrong" || state.view === "wrongbook") {
       if (chapter === "全部") return Object.values(state.wrongNotebook).reduce((sum, list) => sum + list.length, 0);
       return (state.wrongNotebook[chapter] || []).length;
     }
@@ -366,6 +400,7 @@
   }
 
   function jumpToWrong(id) {
+    state.view = "practice";
     state.mode = "wrong";
     rebuildOrder();
     const index = state.order.indexOf(id);
@@ -385,6 +420,47 @@
     saveWrong();
     rebuildOrder();
     render();
+  }
+
+  function exportWrongNotebook(format) {
+    const exported = QuizCore.buildWrongNotebookExport(state.wrongNotebook, {
+      source: state.bank ? state.bank.source : "",
+      activeChapter: state.activeChapter,
+    });
+
+    if (!exported.summary.questionCount) {
+      alert("当前没有错题可导出。");
+      return;
+    }
+
+    const date = exported.exportedAt.slice(0, 10);
+    const scope = state.activeChapter === "全部" ? "全部章节" : state.activeChapter;
+    if (format === "json") {
+      downloadText(
+        `马克思错题本-${scope}-${date}.json`,
+        JSON.stringify(exported, null, 2),
+        "application/json;charset=utf-8",
+      );
+      return;
+    }
+
+    downloadText(
+      `马克思错题本-${scope}-${date}.txt`,
+      QuizCore.formatWrongNotebookTxt(exported),
+      "text/plain;charset=utf-8",
+    );
+  }
+
+  function downloadText(fileName, content, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
   }
 
   function handleKeyboard(event) {

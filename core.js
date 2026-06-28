@@ -242,12 +242,76 @@
     return next;
   }
 
+  function buildWrongNotebookExport(notebook, options) {
+    const source = (options && options.source) || "";
+    const activeChapter = (options && options.activeChapter) || "全部";
+    const exportedAt = (options && options.exportedAt) || new Date().toISOString();
+    const safeNotebook = notebook || {};
+    const chapterNames = activeChapter && activeChapter !== "全部"
+      ? [activeChapter]
+      : Object.keys(safeNotebook);
+    const chapters = chapterNames
+      .map((chapter) => ({
+        chapter,
+        questions: JSON.parse(JSON.stringify(safeNotebook[chapter] || [])),
+      }))
+      .filter((chapterBlock) => chapterBlock.questions.length > 0);
+    const questionCount = chapters.reduce((sum, chapterBlock) => sum + chapterBlock.questions.length, 0);
+
+    return {
+      version: 1,
+      exportedAt,
+      source,
+      activeChapter,
+      summary: {
+        chapterCount: chapters.length,
+        questionCount,
+      },
+      chapters,
+    };
+  }
+
+  function formatWrongNotebookTxt(exported) {
+    const data = exported || buildWrongNotebookExport({});
+    const lines = [
+      "错题本导出",
+      `导出时间：${data.exportedAt || ""}`,
+      `来源：${data.source || "未记录"}`,
+      `范围：${data.activeChapter || "全部"}`,
+      `章节数：${data.summary ? data.summary.chapterCount : 0}`,
+      `题目数：${data.summary ? data.summary.questionCount : 0}`,
+      "",
+    ];
+
+    (data.chapters || []).forEach((chapterBlock) => {
+      lines.push(`【${chapterBlock.chapter}】`);
+      (chapterBlock.questions || []).forEach((question) => {
+        lines.push(`${question.number || ""}. ${question.question || ""}`.trim());
+        Object.keys(question.options || {}).sort().forEach((letter) => {
+          lines.push(`${letter}. ${question.options[letter]}`);
+        });
+        lines.push(`正确答案：${normalizeAnswer(question.answer).join("") || "未记录"}`);
+        lines.push(`上次选择：${normalizeAnswer(question.lastChoice).join("") || "未记录"}`);
+        if (question.wrongAt) lines.push(`错题时间：${question.wrongAt}`);
+        lines.push("");
+      });
+    });
+
+    if (!(data.summary && data.summary.questionCount)) {
+      lines.push("当前没有错题。");
+    }
+
+    return lines.join("\n");
+  }
+
   return {
     LETTERS,
     parseQuestionBank,
     isCorrectAnswer,
     addWrongQuestion,
     removeWrongQuestion,
+    buildWrongNotebookExport,
+    formatWrongNotebookTxt,
     normalizeAnswer,
   };
 });
